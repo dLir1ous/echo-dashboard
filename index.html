@@ -17,7 +17,9 @@
   .left { flex: 0.95; }
   .right { flex: 1.35; }
   .clock-group { display: flex; flex-direction: column; justify-content: center; flex: 1; }
-  #time { font-size: 4.5rem; font-weight: 700; line-height: 1; letter-spacing: -2px; }
+  .time-row { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+  #time { font-size: 5rem; font-weight: 700; line-height: 1; letter-spacing: -2px; }
+  #ampm { font-size: 1.5rem; font-weight: 700; color: #8b949e; text-transform: uppercase; }
   #date { font-size: 1.3rem; color: #8b949e; margin-top: 10px; }
   .spotify-btn {
     background: #1db954; color: #000; border: none; border-radius: 14px;
@@ -46,7 +48,10 @@
 <body>
   <div class="card left">
     <div class="clock-group">
-      <div id="time">--:--</div>
+      <div class="time-row">
+        <span id="time">--:--</span>
+        <span id="ampm">--</span>
+      </div>
       <div id="date">Loading date...</div>
     </div>
     <a class="spotify-btn" href="spotify://">
@@ -72,7 +77,13 @@
 <script>
   function updateClock() {
     const now = new Date();
-    document.getElementById('time').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let hours = now.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const mins = String(now.getMinutes()).padStart(2, '0');
+
+    document.getElementById('time').textContent = `${hours}:${mins}`;
+    document.getElementById('ampm').textContent = ampm;
     document.getElementById('date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
   }
 
