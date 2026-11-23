@@ -87,33 +87,36 @@
     document.getElementById('date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
   }
 
-  function getIcon(code) {
-    if (code === 0) return '☀️';
-    if (code <= 3) return '⛅';
-    if (code <= 48) return '🌫️';
-    if (code <= 67) return '🌧️';
-    if (code <= 77) return '❄️';
-    if (code <= 82) return '🌦️';
-    return '⛈️';
+  function getIconFromDesc(desc) {
+    const t = desc.toLowerCase();
+    if (t.includes('thunder') || t.includes('storm')) return '⛈️';
+    if (t.includes('snow') || t.includes('sleet') || t.includes('blizzard')) return '❄️';
+    if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return '🌧️';
+    if (t.includes('cloud') || t.includes('overcast')) return '⛅';
+    if (t.includes('fog') || t.includes('mist')) return '🌫️';
+    return '☀️';
   }
 
   async function updateWeather() {
     try {
-      const url = 'https://open-meteo.com';
-      const res = await fetch(url);
+      const target = encodeURIComponent('https://weather.gov');
+      const res = await fetch('https://allorigins.win' + target);
       const data = await res.json();
+      const periods = data.properties.periods;
 
-      document.getElementById('weather-temp').textContent = Math.round(data.current.temperature_2m) + '°F';
+      document.getElementById('weather-temp').textContent = periods[0].temperature + '°F';
       document.getElementById('weather-desc').textContent = 'Richardson, TX';
 
       const container = document.getElementById('forecast');
       container.innerHTML = '';
-      for (let i = 0; i < 5; i++) {
-        const d = new Date(data.daily.time[i] + 'T12:00:00');
-        const label = i === 0 ? 'Today' : d.toLocaleDateString([], { weekday: 'short' });
-        const icon = getIcon(data.daily.weather_code[i]);
-        const hi = Math.round(data.daily.temperature_2m_max[i]);
-        const lo = Math.round(data.daily.temperature_2m_min[i]);
+      const days = periods.filter(p => p.isDaytime).slice(0, 5);
+      const nights = periods.filter(p => !p.isDaytime);
+
+      days.forEach((day, idx) => {
+        const label = idx === 0 ? 'Today' : day.name.slice(0, 3);
+        const icon = getIconFromDesc(day.shortForecast);
+        const hi = day.temperature;
+        const lo = nights[idx] ? nights[idx].temperature : '--';
 
         container.innerHTML += `
           <div class="day-col">
@@ -121,7 +124,7 @@
             <span class="day-icon">${icon}</span>
             <span class="day-temps"><span>${hi}°</span><span class="day-low">${lo}°</span></span>
           </div>`;
-      }
+      });
     } catch (e) {
       document.getElementById('weather-desc').textContent = 'Err: ' + e.message;
     }
