@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo Show Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+  body {
+    background: #0d1117; color: #f0f6fc;
+    display: flex; height: 100vh; padding: 16px; gap: 16px; overflow: hidden;
+  }
+  .card {
+    background: #161b22; border: 1px solid #30363d; border-radius: 18px;
+    padding: 20px; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .left { flex: 0.95; }
+  .right { flex: 1.35; }
+  .clock-group { display: flex; flex-direction: column; justify-content: center; flex: 1; }
+  #time { font-size: 4.5rem; font-weight: 700; line-height: 1; letter-spacing: -2px; }
+  #date { font-size: 1.3rem; color: #8b949e; margin-top: 10px; }
+  .spotify-btn {
+    background: #1db954; color: #000; border: none; border-radius: 14px;
+    padding: 14px; font-size: 1.2rem; font-weight: 700; cursor: pointer;
+    text-align: center; text-decoration: none; display: block; margin-top: 14px;
+  }
+  .spotify-btn:active { opacity: 0.85; }
+  .current-row { display: flex; align-items: baseline; justify-content: space-between; }
+  #weather-temp { font-size: 3.6rem; font-weight: 700; color: #58a6ff; line-height: 1; }
+  #weather-desc { font-size: 1.2rem; color: #8b949e; font-weight: 500; }
+  .forecast {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+    background: #0d1117; border: 1px solid #21262d; border-radius: 14px;
+    padding: 16px 8px; text-align: center; flex: 1; margin-top: 16px; align-items: center;
+  }
+  .day-col {
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    height: 100%; padding: 4px 0;
+  }
+  .day-name { font-size: 1rem; font-weight: 700; color: #8b949e; text-transform: uppercase; }
+  .day-icon { font-size: 2rem; line-height: 1.1; }
+  .day-temps { display: flex; flex-direction: column; font-size: 1.1rem; font-weight: 700; color: #f0f6fc; line-height: 1.25; }
+  .day-low { color: #8b949e; font-weight: 500; font-size: 0.95rem; }
+</style>
+</head>
+<body>
+  <div class="card left">
+    <div class="clock-group">
+      <div id="time">--:--</div>
+      <div id="date">Loading date...</div>
+    </div>
+    <a class="spotify-btn" href="spotify://">
+      ▶ Open Spotify
+    </a>
+  </div>
+
+  <div class="card right">
+    <div class="current-row">
+      <div id="weather-temp">--°F</div>
+      <div id="weather-desc">Richardson, TX</div>
+    </div>
+
+    <div class="forecast" id="forecast">
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+    </div>
+  </div>
+
+<script>
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('time').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  }
+
+  function getIcon(code) {
+    if (code === 0) return '☀️';
+    if (code <= 3) return '⛅';
+    if (code <= 48) return '🌫️';
+    if (code <= 67) return '🌧️';
+    if (code <= 77) return '❄️';
+    if (code <= 82) return '🌦️';
+    return '⛈️';
+  }
+
+  async function updateWeather() {
+    try {
+      const url = 'https://open-meteo.com';
+      const res = await fetch(url);
+      const data = await res.json();
+
+      document.getElementById('weather-temp').textContent = Math.round(data.current.temperature_2m) + '°F';
+      document.getElementById('weather-desc').textContent = 'Richardson, TX';
+
+      const container = document.getElementById('forecast');
+      container.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(data.daily.time[i] + 'T12:00:00');
+        const label = i === 0 ? 'Today' : d.toLocaleDateString([], { weekday: 'short' });
+        const icon = getIcon(data.daily.weather_code[i]);
+        const hi = Math.round(data.daily.temperature_2m_max[i]);
+        const lo = Math.round(data.daily.temperature_2m_min[i]);
+
+        container.innerHTML += `
+          <div class="day-col">
+            <span class="day-name">${label}</span>
+            <span class="day-icon">${icon}</span>
+            <span class="day-temps"><span>${hi}°</span><span class="day-low">${lo}°</span></span>
+          </div>`;
+      }
+    } catch (e) {
+      document.getElementById('weather-desc').textContent = 'Err: ' + e.message;
+    }
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+  updateWeather();
+  setInterval(updateWeather, 900000);
+</script>
+</body>
+</html>
