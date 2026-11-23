@@ -18,7 +18,7 @@
   .right { flex: 1.25; min-width: 0; }
   .clock-group { display: flex; flex-direction: column; justify-content: center; flex: 1; }
   .time-row { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-  #time { font-size: 5.3rem; font-weight: 700; line-height: 0.95; letter-spacing: -2px; }
+  #time { font-size: 4.8rem; font-weight: 700; line-height: 0.95; letter-spacing: -2px; }
   #ampm { font-size: 1.3rem; font-weight: 700; color: #8b949e; text-transform: uppercase; }
   #date { font-size: 1.25rem; color: #8b949e; margin-top: 10px; }
   .spotify-btn {
@@ -99,11 +99,8 @@
 
   async function updateWeather() {
     try {
-      const nwsUrl = 'https://weather.gov';
-      const proxyUrl = 'https://allorigins.win' + encodeURIComponent(nwsUrl);
-      const res = await fetch(proxyUrl);
-      const wrapper = await res.json();
-      const data = JSON.parse(wrapper.contents);
+      const res = await fetch('./weather.json?t=' + Date.now());
+      const data = await res.json();
       const periods = data.properties.periods;
 
       document.getElementById('weather-temp').textContent = periods[0].temperature + '°F';
