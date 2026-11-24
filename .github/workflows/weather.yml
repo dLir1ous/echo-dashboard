@@ -14,17 +14,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch Weather Data
         run: |
-          curl --http1.1 -sS -L \
-            -H "User-Agent: EchoShowDashboard/1.0 (https://github.com)" \
-            -H "Accept: application/json" \
-            "https://met.no" \
-            -o met.json
-
-          curl --http1.1 -sS -L \
-            -H "User-Agent: (EchoShowDashboard, https://github.com)" \
-            -H "Accept: application/geo+json" \
-            "https://weather.gov" \
-            -o nws.json
+          curl -f -sS -L -H "User-Agent: EchoShowDashboard/1.0 (https://github.com)" -H "Accept: application/json" "https://met.no" -o met.json || true
+          curl -f -sS -L -H "User-Agent: (EchoShowDashboard, https://github.com)" -H "Accept: application/geo+json" "https://weather.gov" -o nws.json || true
+          ls -lh met.json nws.json || true
 
           python3 - << 'EOF'
           import json
@@ -48,15 +40,16 @@ jobs:
           try:
               with open("met.json", "r", encoding="utf-8") as f:
                   data = json.load(f)
-              ts = data["properties"]["timeseries"]
-              cur_c = ts["data"]["instant"]["details"]["air_temperature"]
+              ts = data.get("properties").get("timeseries")
+              first_ts = next(iter(ts))
+              cur_c = first_ts.get("data").get("instant").get("details").get("air_temperature")
               tz_cst = timezone(timedelta(hours=-6))
               daily = {}
               for entry in ts:
-                  dt = datetime.fromisoformat(entry["time"].replace("Z", "+00:00")).astimezone(tz_cst)
+                  dt = datetime.fromisoformat(entry.get("time").replace("Z", "+00:00")).astimezone(tz_cst)
                   d_key = dt.strftime("%Y-%m-%d")
-                  temp_c = entry["data"]["instant"]["details"]["air_temperature"]
-                  nxt = entry["data"].get("next_6_hours") or entry["data"].get("next_1_hours") or {}
+                  temp_c = entry.get("data").get("instant").get("details").get("air_temperature")
+                  nxt = entry.get("data").get("next_6_hours") or entry.get("data").get("next_1_hours") or {}
                   sym = nxt.get("summary", {}).get("symbol_code", "")
                   if d_key not in daily:
                       daily[d_key] = {"dt": dt, "temps": [], "syms": []}
@@ -64,15 +57,18 @@ jobs:
                   if sym:
                       daily[d_key]["syms"].append(sym)
               days = []
-              for idx, key in enumerate(sorted(daily.keys())[:5]):
-                  info = daily[key]
-                  label = "Today" if idx == 0 else info["dt"].strftime("%a")
-                  mid_sym = info["syms"][len(info["syms"]) // 2] if info["syms"] else "clearsky"
+              for idx, key in enumerate(sorted(daily.keys())):
+                  if idx >= 5:
+                      break
+                  info = daily.get(key)
+                  label = "Today" if idx == 0 else info.get("dt").strftime("%a")
+                  syms = info.get("syms")
+                  mid_sym = syms[len(syms) // 2] if syms else "clearsky"
                   days.append({
                       "label": label,
                       "icon": icon_from_text(mid_sym),
-                      "hi": c_to_f(max(info["temps"])),
-                      "lo": c_to_f(min(info["temps"]))
+                      "hi": c_to_f(max(info.get("temps"))),
+                      "lo": c_to_f(min(info.get("temps")))
                   })
               out = {"temp": c_to_f(cur_c), "days": days}
               print("Success from MET Norway:", out)
@@ -84,18 +80,22 @@ jobs:
               try:
                   with open("nws.json", "r", encoding="utf-8") as f:
                       data = json.load(f)
-                  periods = data["properties"]["periods"]
-                  cur_f = int(periods["temperature"])
-                  day_list = [p for p in periods if p.get("isDaytime")][:5]
+                  periods = data.get("properties").get("periods")
+                  first_p = next(iter(periods))
+                  cur_f = int(first_p.get("temperature"))
+                  day_list = [p for p in periods if p.get("isDaytime")]
                   night_list = [p for p in periods if not p.get("isDaytime")]
                   days = []
                   for idx, d in enumerate(day_list):
-                      label = "Today" if idx == 0 else d["name"][:3]
-                      lo = int(night_list[idx]["temperature"]) if idx < len(night_list) else int(d["temperature"]) - 15
+                      if idx >= 5:
+                          break
+                      label = "Today" if idx == 0 else d.get("name")[:3]
+                      night_p = night_list[idx] if idx < len(night_list) else None
+                      lo = int(night_p.get("temperature")) if night_p else int(d.get("temperature")) - 15
                       days.append({
                           "label": label,
                           "icon": icon_from_text(d.get("shortForecast", "")),
-                          "hi": int(d["temperature"]),
+                          "hi": int(d.get("temperature")),
                           "lo": lo
                       })
                   out = {"temp": cur_f, "days": days}
