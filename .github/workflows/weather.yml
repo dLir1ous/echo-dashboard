@@ -12,10 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch NWS Forecast
+      - name: Fetch Richardson Weather
         run: |
-          curl -f -sS -H "User-Agent: (EchoShowDashboard, contact@example.com)" -H "Accept: application/geo+json" "https://weather.gov" -o raw.json
-          python3 -m json.tool raw.json > /dev/null
+          if curl -f -sS --retry 3 -H "User-Agent: (EchoShowDashboard, admin@github.com)" -H "Accept: application/geo+json" "https://weather.gov" -o raw.json && python3 -m json.tool raw.json > /dev/null 2>&1; then
+            echo "Fetched NWS weather"
+          else
+            echo "NWS unavailable, falling back to Open-Meteo"
+            curl -f -sS --retry 3 -H "User-Agent: Mozilla/5.0" -H "Accept: application/json" "https://open-meteo.com" -o raw.json
+            python3 -m json.tool raw.json > /dev/null
+          fi
           printf "window.WEATHER_DATA = " > weather.js
           cat raw.json >> weather.js
           echo ";" >> weather.js
