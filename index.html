@@ -113,7 +113,7 @@
 
     if (data && data.properties && data.properties.periods) {
       const periods = data.properties.periods;
-      document.getElementById('weather-temp').textContent = periods.temperature + '°F';
+      document.getElementById('weather-temp').textContent = periods[0].temperature + '°F';
       document.getElementById('weather-desc').textContent = 'Richardson, TX';
       container.innerHTML = '';
 
