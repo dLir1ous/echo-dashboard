@@ -12,18 +12,18 @@
   }
   .card {
     background: #161b22; border: 1px solid #30363d; border-radius: 18px;
-    padding: 16px; display: flex; flex-direction: column; justify-content: space-between;
+    padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between;
   }
   .left { flex: 1.05; min-width: 0; }
   .right { flex: 1.25; min-width: 0; }
   .clock-group { display: flex; flex-direction: column; justify-content: center; flex: 1; }
   .time-row { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-  #time { font-size: 5.4rem; font-weight: 700; line-height: 0.95; letter-spacing: -2.5px; }
-  #ampm { font-size: 1.5rem; font-weight: 700; color: #8b949e; text-transform: uppercase; }
-  #date { font-size: 1.3rem; color: #8b949e; margin-top: 10px; }
+  #time { font-size: 5.8rem; font-weight: 700; line-height: 0.95; letter-spacing: -2.5px; }
+  #ampm { font-size: 1.6rem; font-weight: 700; color: #8b949e; text-transform: uppercase; }
+  #date { font-size: 1.35rem; color: #8b949e; margin-top: 10px; }
   .spotify-btn {
     background: #1db954; color: #000; border: none; border-radius: 14px;
-    padding: 13px; font-size: 1.15rem; font-weight: 700; cursor: pointer;
+    padding: 14px; font-size: 1.2rem; font-weight: 700; cursor: pointer;
     text-align: center; text-decoration: none; display: block; margin-top: 10px;
   }
   .spotify-btn:active { opacity: 0.85; }
@@ -99,7 +99,7 @@
 
   async function updateWeather() {
     try {
-      const res = await fetch('./weather.json?t=' + Date.now());
+      const res = await fetch('https://github.io' + Date.now());
       const data = await res.json();
 
       document.getElementById('weather-temp').textContent = Math.round(data.current.temperature_2m) + '°F';
