@@ -32,7 +32,7 @@ jobs:
 
           out = None
 
-          # Source 1: MET Norway (global, reliable on GitHub Actions)
+          # Source 1: MET Norway
           try:
               url = "https://met.no"
               req = urllib.request.Request(url, headers={"User-Agent": "EchoShowDashboard/1.0 ://github.com"})
@@ -80,7 +80,7 @@ jobs:
                   for idx, w in enumerate(data["weather"][:5]):
                       dt = datetime.strptime(w["date"], "%Y-%m-%d")
                       label = "Today" if idx == 0 else dt.strftime("%a")
-                      desc = w["hourly"][4]["weatherDesc"][0]["value"]
+                      desc = w["hourly"][0]["weatherDesc"][0]["value"]
                       days.append({
                           "label": label,
                           "icon": icon_from_symbol(desc),
