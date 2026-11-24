@@ -8,19 +8,22 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
   body {
     background: #0d1117; color: #f0f6fc;
-    display: flex; flex-direction: column; height: 100vh; padding: 12px; gap: 10px; overflow: hidden;
+    display: flex; height: 100vh; padding: 14px; gap: 14px; overflow: hidden;
     transition: filter 0.6s ease, background-color 0.6s ease;
   }
-  body.night { background: #000000; filter: brightness(0.35); }
-  body.night .card, body.night .forecast, body.night .news-bar {
-    background: #080a0e; border-color: #161b22;
+  /* Auto-dimming bedside night mode (10 PM - 6 AM) */
+  body.night {
+    background: #000000;
+    filter: brightness(0.35);
   }
-  .top-grid {
-    display: flex; flex: 1; gap: 12px; min-height: 0;
+  body.night .card,
+  body.night .forecast {
+    background: #080a0e;
+    border-color: #161b22;
   }
   .card {
     background: #161b22; border: 1px solid #30363d; border-radius: 18px;
-    padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between;
+    padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between;
   }
   .left { flex: 1.08; min-width: 0; }
   .right { flex: 1.22; min-width: 0; }
@@ -32,96 +35,73 @@
     display: flex; align-items: baseline; justify-content: center;
     gap: 5px; white-space: nowrap;
   }
-  #time { font-size: 12.2vw; font-weight: 700; line-height: 0.95; letter-spacing: -2px; }
-  #ampm { font-size: 3.4vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
-  #date { font-size: 2.9vw; color: #8b949e; margin-top: 8px; }
+  #time { font-size: 12.5vw; font-weight: 700; line-height: 0.95; letter-spacing: -2px; }
+  #ampm { font-size: 3.5vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
+  #date { font-size: 3.1vw; color: #8b949e; margin-top: 10px; }
 
   .btn-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
   }
   .app-btn {
-    border: none; border-radius: 12px; padding: 11px 8px;
-    font-size: 2.4vw; font-weight: 700; cursor: pointer;
+    border: none; border-radius: 14px; padding: 13px 8px;
+    font-size: 2.5vw; font-weight: 700; cursor: pointer;
     text-align: center; text-decoration: none; display: block; white-space: nowrap;
   }
   .app-btn:active { opacity: 0.85; }
   .spotify-btn { background: #1db954; color: #000; }
-  .news-btn { background: #30363d; color: #f0f6fc; border: 1px solid #484f58; }
+  .news-btn { background: #2f81f7; color: #fff; }
 
   .current-row { display: flex; align-items: baseline; justify-content: space-between; }
-  #weather-temp { font-size: 7.8vw; font-weight: 700; color: #58a6ff; line-height: 1; }
-  #weather-desc { font-size: 2.6vw; color: #8b949e; font-weight: 500; }
+  #weather-temp { font-size: 8.5vw; font-weight: 700; color: #58a6ff; line-height: 1; }
+  #weather-desc { font-size: 2.8vw; color: #8b949e; font-weight: 500; }
   .forecast {
     display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
     background: #0d1117; border: 1px solid #21262d; border-radius: 14px;
-    padding: 10px 6px; text-align: center; flex: 1; margin-top: 10px; align-items: center;
+    padding: 14px 6px; text-align: center; flex: 1; margin-top: 14px; align-items: center;
   }
   .day-col {
     display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-    height: 100%; padding: 2px 0;
+    height: 100%; padding: 4px 0;
   }
-  .day-name { font-size: 2.1vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
-  .day-icon { font-size: 4.2vw; line-height: 1.1; }
-  .day-temps { display: flex; flex-direction: column; font-size: 2.4vw; font-weight: 700; color: #f0f6fc; line-height: 1.2; }
-  .day-low { color: #8b949e; font-weight: 500; font-size: 2vw; }
-
-  .news-bar {
-    background: #161b22; border: 1px solid #30363d; border-radius: 14px;
-    padding: 10px 14px; display: flex; align-items: center; gap: 10px;
-    white-space: nowrap; overflow: hidden;
-  }
-  .news-badge {
-    background: #da3633; color: #fff; font-size: 1.9vw; font-weight: 800;
-    padding: 3px 8px; border-radius: 6px; text-transform: uppercase; flex-shrink: 0;
-  }
-  #news-text {
-    font-size: 2.3vw; color: #e6edf3; font-weight: 500;
-    overflow: hidden; text-overflow: ellipsis;
-  }
+  .day-name { font-size: 2.3vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
+  .day-icon { font-size: 4.6vw; line-height: 1.1; }
+  .day-temps { display: flex; flex-direction: column; font-size: 2.6vw; font-weight: 700; color: #f0f6fc; line-height: 1.25; }
+  .day-low { color: #8b949e; font-weight: 500; font-size: 2.2vw; }
 </style>
 </head>
 <body>
-  <div class="top-grid">
-    <div class="card left">
-      <div class="clock-group">
-        <div class="time-row">
-          <span id="time">--:--</span>
-          <span id="ampm">--</span>
-        </div>
-        <div id="date">Loading date...</div>
+  <div class="card left">
+    <div class="clock-group">
+      <div class="time-row">
+        <span id="time">--:--</span>
+        <span id="ampm">--</span>
       </div>
-
-      <div class="btn-row">
-        <a class="app-btn spotify-btn" href="spotify://">▶ Spotify</a>
-        <button class="app-btn news-btn" onclick="nextHeadline()">📰 Next News</button>
-      </div>
+      <div id="date">Loading date...</div>
     </div>
 
-    <div class="card right">
-      <div class="current-row">
-        <div id="weather-temp">--°F</div>
-        <div id="weather-desc">Richardson, TX</div>
-      </div>
-
-      <div class="forecast" id="forecast">
-        <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
-        <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
-        <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
-        <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
-        <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
-      </div>
+    <div class="btn-row">
+      <a class="app-btn spotify-btn" href="spotify://">▶ Spotify</a>
+      <a class="app-btn news-btn" href="https://npr.org">📰 News</a>
     </div>
   </div>
 
-  <div class="news-bar" onclick="nextHeadline()">
-    <span class="news-badge">NEWS</span>
-    <span id="news-text">Loading top headlines...</span>
+  <div class="card right">
+    <div class="current-row">
+      <div id="weather-temp">--°F</div>
+      <div id="weather-desc">Richardson, TX</div>
+    </div>
+
+    <div class="forecast" id="forecast">
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+      <div class="day-col"><span class="day-name">---</span><span class="day-icon">--</span><span class="day-temps">--°</span></div>
+    </div>
   </div>
 
 <script>
   let wakeUntil = 0;
-  let headlines = [];
-  let newsIndex = 0;
 
   function updateClock() {
     const now = new Date();
@@ -134,6 +114,7 @@
     document.getElementById('ampm').textContent = ampm;
     document.getElementById('date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
 
+    // Auto-dim between 10:00 PM (22) and 6:00 AM (6) unless tapped awake
     const isNightHours = rawHour >= 22 || rawHour < 6;
     if (isNightHours && Date.now() > wakeUntil) {
       document.body.classList.add('night');
@@ -142,59 +123,51 @@
     }
   }
 
+  // Tap anywhere at night to temporarily brighten for 15 seconds
   document.body.addEventListener('click', () => {
     wakeUntil = Date.now() + 15000;
     document.body.classList.remove('night');
   });
 
-  function nextHeadline() {
-    if (!headlines.length) return;
-    newsIndex = (newsIndex + 1) % headlines.length;
-    document.getElementById('news-text').textContent = headlines[newsIndex];
-  }
-
-  function renderData() {
+  function renderWeather() {
     const data = window.WEATHER_DATA;
-    if (!data) return;
-
-    if (data.days && data.days.length) {
-      document.getElementById('weather-temp').textContent = data.temp + '°F';
-      document.getElementById('weather-desc').textContent = 'Richardson, TX';
-
-      const container = document.getElementById('forecast');
-      container.innerHTML = '';
-      data.days.forEach(d => {
-        container.innerHTML += `
-          <div class="day-col">
-            <span class="day-name">${d.label}</span>
-            <span class="day-icon">${d.icon}</span>
-            <span class="day-temps"><span>${d.hi}°</span><span class="day-low">${d.lo}°</span></span>
-          </div>`;
-      });
+    if (!data || !data.days) {
+      document.getElementById('weather-desc').textContent = 'Empty weather.js';
+      return;
     }
 
-    if (data.news && data.news.length) {
-      headlines = data.news;
-      newsIndex = 0;
-      document.getElementById('news-text').textContent = headlines;
-    }
+    document.getElementById('weather-temp').textContent = data.temp + '°F';
+    document.getElementById('weather-desc').textContent = 'Richardson, TX';
+
+    const container = document.getElementById('forecast');
+    container.innerHTML = '';
+    data.days.forEach(d => {
+      container.innerHTML += `
+        <div class="day-col">
+          <span class="day-name">${d.label}</span>
+          <span class="day-icon">${d.icon}</span>
+          <span class="day-temps"><span>${d.hi}°</span><span class="day-low">${d.lo}°</span></span>
+        </div>`;
+    });
   }
 
-  function loadDataScript() {
+  function loadWeatherScript() {
     const old = document.getElementById('w-script');
     if (old) old.remove();
     const s = document.createElement('script');
     s.id = 'w-script';
     s.src = './weather.js?t=' + Date.now();
-    s.onload = renderData;
+    s.onload = renderWeather;
+    s.onerror = function() {
+      document.getElementById('weather-desc').textContent = 'weather.js missing';
+    };
     document.body.appendChild(s);
   }
 
   updateClock();
   setInterval(updateClock, 1000);
-  loadDataScript();
-  setInterval(loadDataScript, 900000);
-  setInterval(nextHeadline, 12000);
+  loadWeatherScript();
+  setInterval(loadWeatherScript, 900000);
 </script>
 </body>
 </html>
