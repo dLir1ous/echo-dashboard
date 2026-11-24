@@ -14,97 +14,49 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch Weather Data
         run: |
+          curl --http1.1 -sS -L \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+            -H "Accept: application/json" \
+            "https://open-meteo.com" \
+            -o raw.json
+
+          echo "Downloaded bytes: $(wc -c < raw.json)"
+          head -c 200 raw.json
+          echo ""
+
           python3 - << 'EOF'
-          import json, urllib.request
-          from datetime import datetime, timezone, timedelta
+          import json
+          from datetime import datetime
 
-          def c_to_f(c):
-              return round((float(c) * 9 / 5) + 32)
+          def get_icon(code):
+              if code == 0: return "☀️"
+              if code <= 3: return "⛅"
+              if code <= 48: return "🌫️"
+              if code <= 67: return "🌧️"
+              if code <= 77: return "❄️"
+              if code <= 82: return "🌦️"
+              return "⛈️"
 
-          def icon_from_symbol(sym):
-              s = (sym or "").lower()
-              if "thunder" in s: return "⛈️"
-              if "snow" in s or "sleet" in s: return "❄️"
-              if "rain" in s or "drizzle" in s: return "🌧️"
-              if "fog" in s: return "🌫️"
-              if "cloud" in s or "partly" in s: return "⛅"
-              return "☀️"
+          with open("raw.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
 
-          out = None
+          cur_f = round(data["current"]["temperature_2m"])
+          daily = data["daily"]
+          days = []
+          for i in range(5):
+              dt = datetime.strptime(daily["time"][i], "%Y-%m-%d")
+              label = "Today" if i == 0 else dt.strftime("%a")
+              days.append({
+                  "label": label,
+                  "icon": get_icon(daily["weather_code"][i]),
+                  "hi": round(daily["temperature_2m_max"][i]),
+                  "lo": round(daily["temperature_2m_min"][i])
+              })
 
-          # Source 1: MET Norway
-          try:
-              url = "https://met.no"
-              req = urllib.request.Request(url, headers={"User-Agent": "EchoShowDashboard/1.0 ://github.com"})
-              raw = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
-              data = json.loads(raw)
-              ts = data.get("properties").get("timeseries")
-              first_entry = next(iter(ts))
-              cur_c = first_entry.get("data").get("instant").get("details").get("air_temperature")
-              tz_cst = timezone(timedelta(hours=-6))
-              daily = {}
-              for entry in ts:
-                  dt = datetime.fromisoformat(entry.get("time").replace("Z", "+00:00")).astimezone(tz_cst)
-                  d_key = dt.strftime("%Y-%m-%d")
-                  temp_c = entry.get("data").get("instant").get("details").get("air_temperature")
-                  nxt = entry.get("data").get("next_6_hours") or entry.get("data").get("next_1_hours") or {}
-                  sym = nxt.get("summary", {}).get("symbol_code", "")
-                  if d_key not in daily:
-                      daily[d_key] = {"dt": dt, "temps": [], "syms": []}
-                  daily[d_key]["temps"].append(temp_c)
-                  if sym:
-                      daily[d_key]["syms"].append(sym)
-              days = []
-              for idx, key in enumerate(sorted(daily.keys())):
-                  if idx >= 5:
-                      break
-                  info = daily[key]
-                  label = "Today" if idx == 0 else info["dt"].strftime("%a")
-                  mid_sym = info["syms"][len(info["syms"]) // 2] if info["syms"] else "clearsky"
-                  days.append({
-                      "label": label,
-                      "icon": icon_from_symbol(mid_sym),
-                      "hi": c_to_f(max(info["temps"])),
-                      "lo": c_to_f(min(info["temps"]))
-                  })
-              out = {"temp": c_to_f(cur_c), "days": days}
-              print("Success from MET Norway")
-          except Exception as e:
-              print(f"MET Norway failed: {e}")
-
-          # Source 2: wttr.in fallback
-          if not out:
-              try:
-                  url = "https://wttr.in"
-                  req = urllib.request.Request(url, headers={"User-Agent": "curl/8.0"})
-                  raw = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
-                  data = json.loads(raw)
-                  cur_cond = next(iter(data.get("current_condition")))
-                  cur_f = int(cur_cond.get("temp_F"))
-                  days = []
-                  for idx, w in enumerate(data.get("weather")):
-                      if idx >= 5:
-                          break
-                      dt = datetime.strptime(w.get("date"), "%Y-%m-%d")
-                      label = "Today" if idx == 0 else dt.strftime("%a")
-                      hr = next(iter(w.get("hourly")))
-                      desc_obj = next(iter(hr.get("weatherDesc")))
-                      days.append({
-                          "label": label,
-                          "icon": icon_from_symbol(desc_obj.get("value")),
-                          "hi": int(w.get("maxtempF")),
-                          "lo": int(w.get("mintempF"))
-                      })
-                  out = {"temp": cur_f, "days": days}
-                  print("Success from wttr.in")
-              except Exception as e:
-                  print(f"wttr.in failed: {e}")
-
-          if not out:
-              raise SystemExit("All weather sources failed")
-
+          out = {"temp": cur_f, "days": days}
           with open("weather.js", "w", encoding="utf-8") as f:
               f.write("window.WEATHER_DATA = " + json.dumps(out) + ";\n")
+          print("Successfully built weather.js:", out)
           EOF
       - name: Commit weather.js
         run: |
