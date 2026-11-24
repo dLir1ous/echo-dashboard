@@ -9,6 +9,17 @@
   body {
     background: #0d1117; color: #f0f6fc;
     display: flex; height: 100vh; padding: 14px; gap: 14px; overflow: hidden;
+    transition: filter 0.6s ease, background-color 0.6s ease;
+  }
+  /* Auto-dimming bedside night mode (10 PM - 6 AM) */
+  body.night {
+    background: #000000;
+    filter: brightness(0.35);
+  }
+  body.night .card,
+  body.night .forecast {
+    background: #080a0e;
+    border-color: #161b22;
   }
   .card {
     background: #161b22; border: 1px solid #30363d; border-radius: 18px;
@@ -16,17 +27,30 @@
   }
   .left { flex: 1.08; min-width: 0; }
   .right { flex: 1.22; min-width: 0; }
-  .clock-group { display: flex; flex-direction: column; justify-content: center; flex: 1; }
-  .time-row { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-  #time { font-size: 16.2vw; font-weight: 700; line-height: 0.95; letter-spacing: -3px; }
-  #ampm { font-size: 4.6vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
-  #date { font-size: 3.4vw; color: #8b949e; margin-top: 10px; }
-  .spotify-btn {
-    background: #1db954; color: #000; border: none; border-radius: 14px;
-    padding: 14px; font-size: 3vw; font-weight: 700; cursor: pointer;
-    text-align: center; text-decoration: none; display: block; margin-top: 10px;
+  .clock-group {
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; flex: 1;
   }
-  .spotify-btn:active { opacity: 0.85; }
+  .time-row {
+    display: flex; align-items: baseline; justify-content: center;
+    gap: 5px; white-space: nowrap;
+  }
+  #time { font-size: 13.5vw; font-weight: 700; line-height: 0.95; letter-spacing: -2.5px; }
+  #ampm { font-size: 3.8vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
+  #date { font-size: 3.2vw; color: #8b949e; margin-top: 10px; }
+
+  .btn-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
+  }
+  .app-btn {
+    border: none; border-radius: 14px; padding: 13px 8px;
+    font-size: 2.5vw; font-weight: 700; cursor: pointer;
+    text-align: center; text-decoration: none; display: block; white-space: nowrap;
+  }
+  .app-btn:active { opacity: 0.85; }
+  .spotify-btn { background: #1db954; color: #000; }
+  .spacedesk-btn { background: #2f81f7; color: #fff; }
+
   .current-row { display: flex; align-items: baseline; justify-content: space-between; }
   #weather-temp { font-size: 8.5vw; font-weight: 700; color: #58a6ff; line-height: 1; }
   #weather-desc { font-size: 2.8vw; color: #8b949e; font-weight: 500; }
@@ -54,9 +78,11 @@
       </div>
       <div id="date">Loading date...</div>
     </div>
-    <a class="spotify-btn" href="spotify://">
-      ▶ Open Spotify
-    </a>
+
+    <div class="btn-row">
+      <a class="app-btn spotify-btn" href="spotify://">▶ Spotify</a>
+      <a class="app-btn spacedesk-btn" href="intent://#Intent;package=ph.spacedesk.beta;end">🖥️ spacedesk</a>
+    </div>
   </div>
 
   <div class="card right">
@@ -75,17 +101,33 @@
   </div>
 
 <script>
+  let wakeUntil = 0;
+
   function updateClock() {
     const now = new Date();
-    let hours = now.getHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
+    const rawHour = now.getHours();
+    const ampm = rawHour >= 12 ? 'PM' : 'AM';
+    const hours = rawHour % 12 || 12;
     const mins = String(now.getMinutes()).padStart(2, '0');
 
     document.getElementById('time').textContent = `${hours}:${mins}`;
     document.getElementById('ampm').textContent = ampm;
     document.getElementById('date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+
+    // Auto-dim between 10:00 PM (22) and 6:00 AM (6) unless tapped awake
+    const isNightHours = rawHour >= 22 || rawHour < 6;
+    if (isNightHours && Date.now() > wakeUntil) {
+      document.body.classList.add('night');
+    } else {
+      document.body.classList.remove('night');
+    }
   }
+
+  // Tap anywhere at night to temporarily brighten for 15 seconds
+  document.body.addEventListener('click', () => {
+    wakeUntil = Date.now() + 15000;
+    document.body.classList.remove('night');
+  });
 
   function renderWeather() {
     const data = window.WEATHER_DATA;
