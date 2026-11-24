@@ -16,33 +16,95 @@ jobs:
         run: |
           python3 - << 'EOF'
           import json, urllib.request
+          from datetime import datetime, timezone, timedelta
 
-          urls = [
-              ("NWS", "https://weather.gov", {"User-Agent": "EchoShowDashboard/1.0 (contact@example.com)", "Accept": "application/geo+json"}),
-              ("OpenMeteo", "https://open-meteo.com", {"User-Agent": "Mozilla/5.0"}),
-          ]
+          def c_to_f(c):
+              return round((float(c) * 9 / 5) + 32)
 
-          saved = False
-          for name, url, headers in urls:
+          def icon_from_symbol(sym):
+              s = (sym or "").lower()
+              if "thunder" in s: return "⛈️"
+              if "snow" in s or "sleet" in s: return "❄️"
+              if "rain" in s or "drizzle" in s: return "🌧️"
+              if "fog" in s: return "🌫️"
+              if "cloud" in s or "partly" in s: return "⛅"
+              return "☀️"
+
+          out = None
+
+          # Source 1: MET Norway (global, reliable on GitHub Actions)
+          try:
+              url = "https://met.no"
+              req = urllib.request.Request(url, headers={"User-Agent": "EchoShowDashboard/1.0 ://github.com"})
+              raw = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
+              data = json.loads(raw)
+              ts = data["properties"]["timeseries"]
+              cur_c = ts[0]["data"]["instant"]["details"]["air_temperature"]
+              tz_cst = timezone(timedelta(hours=-6))
+              daily = {}
+              for entry in ts:
+                  dt = datetime.fromisoformat(entry["time"].replace("Z", "+00:00")).astimezone(tz_cst)
+                  d_key = dt.strftime("%Y-%m-%d")
+                  temp_c = entry["data"]["instant"]["details"]["air_temperature"]
+                  sym = (entry["data"].get("next_6_hours") or entry["data"].get("next_1_hours") or {}).get("summary", {}).get("symbol_code", "")
+                  if d_key not in daily:
+                      daily[d_key] = {"dt": dt, "temps": [], "syms": []}
+                  daily[d_key]["temps"].append(temp_c)
+                  if sym:
+                      daily[d_key]["syms"].append(sym)
+              days = []
+              for idx, key in enumerate(sorted(daily.keys())[:5]):
+                  info = daily[key]
+                  label = "Today" if idx == 0 else info["dt"].strftime("%a")
+                  mid_sym = info["syms"][len(info["syms"]) // 2] if info["syms"] else "clearsky"
+                  days.append({
+                      "label": label,
+                      "icon": icon_from_symbol(mid_sym),
+                      "hi": c_to_f(max(info["temps"])),
+                      "lo": c_to_f(min(info["temps"]))
+                  })
+              out = {"temp": c_to_f(cur_c), "days": days}
+              print("Success from MET Norway")
+          except Exception as e:
+              print(f"MET Norway failed: {e}")
+
+          # Source 2: wttr.in fallback
+          if not out:
               try:
-                  req = urllib.request.Request(url, headers=headers)
+                  url = "https://wttr.in"
+                  req = urllib.request.Request(url, headers={"User-Agent": "curl/8.0"})
                   raw = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
                   data = json.loads(raw)
-                  with open("weather.js", "w", encoding="utf-8") as f:
-                      f.write("window.WEATHER_DATA = " + json.dumps(data) + ";\n")
-                  print(f"Success from {name}")
-                  saved = True
-                  break
+                  cur_f = int(data["current_condition"][0]["temp_F"])
+                  days = []
+                  for idx, w in enumerate(data["weather"][:5]):
+                      dt = datetime.strptime(w["date"], "%Y-%m-%d")
+                      label = "Today" if idx == 0 else dt.strftime("%a")
+                      desc = w["hourly"][4]["weatherDesc"][0]["value"]
+                      days.append({
+                          "label": label,
+                          "icon": icon_from_symbol(desc),
+                          "hi": int(w["maxtempF"]),
+                          "lo": int(w["mintempF"])
+                      })
+                  out = {"temp": cur_f, "days": days}
+                  print("Success from wttr.in")
               except Exception as e:
-                  print(f"{name} failed: {e}")
+                  print(f"wttr.in failed: {e}")
 
-          if not saved:
+          if not out:
               raise SystemExit("All weather sources failed")
+
+          with open("weather.js", "w", encoding="utf-8") as f:
+              f.write("window.WEATHER_DATA = " + json.dumps(out) + ";\n")
           EOF
       - name: Commit weather.js
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@://github.com"
           git add weather.js
-          git diff --staged --quiet || git commit -m "Update weather.js"
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "Update weather.js"
+            git pull --rebase
+            git push
+          fi
