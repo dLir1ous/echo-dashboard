@@ -12,15 +12,15 @@
   }
   .card {
     background: #161b22; border: 1px solid #30363d; border-radius: 18px;
-    padding: 16px; display: flex; flex-direction: column; justify-content: space-between;
+    padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between;
   }
-  .left { flex: 1.05; min-width: 0; }
-  .right { flex: 1.25; min-width: 0; }
+  .left { flex: 1.08; min-width: 0; }
+  .right { flex: 1.22; min-width: 0; }
   .clock-group { display: flex; flex-direction: column; justify-content: center; flex: 1; }
   .time-row { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-  #time { font-size: 15vw; font-weight: 700; line-height: 0.95; letter-spacing: -3px; }
-  #ampm { font-size: 4.2vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
-  #date { font-size: 3.3vw; color: #8b949e; margin-top: 10px; }
+  #time { font-size: 16.2vw; font-weight: 700; line-height: 0.95; letter-spacing: -3px; }
+  #ampm { font-size: 4.6vw; font-weight: 700; color: #8b949e; text-transform: uppercase; }
+  #date { font-size: 3.4vw; color: #8b949e; margin-top: 10px; }
   .spotify-btn {
     background: #1db954; color: #000; border: none; border-radius: 14px;
     padding: 14px; font-size: 3vw; font-weight: 700; cursor: pointer;
@@ -87,34 +87,37 @@
     document.getElementById('date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
   }
 
-  function getIcon(code) {
-    if (code === 0) return '☀️';
-    if (code <= 3) return '⛅';
-    if (code <= 48) return '🌫️';
-    if (code <= 67) return '🌧️';
-    if (code <= 77) return '❄️';
-    if (code <= 82) return '🌦️';
-    return '⛈️';
+  function getIconFromDesc(desc) {
+    const t = desc.toLowerCase();
+    if (t.includes('thunder') || t.includes('storm')) return '⛈️';
+    if (t.includes('snow') || t.includes('sleet') || t.includes('blizzard')) return '❄️';
+    if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return '🌧️';
+    if (t.includes('cloud') || t.includes('overcast')) return '⛅';
+    if (t.includes('fog') || t.includes('mist')) return '🌫️';
+    return '☀️';
   }
 
   function renderWeather() {
     const data = window.WEATHER_DATA;
-    if (!data || !data.current) {
-      document.getElementById('weather-desc').textContent = 'Waiting for weather.js...';
+    if (!data || !data.properties || !data.properties.periods) {
+      document.getElementById('weather-desc').textContent = 'Empty weather.js';
       return;
     }
 
-    document.getElementById('weather-temp').textContent = Math.round(data.current.temperature_2m) + '°F';
+    const periods = data.properties.periods;
+    document.getElementById('weather-temp').textContent = periods[0].temperature + '°F';
     document.getElementById('weather-desc').textContent = 'Richardson, TX';
 
     const container = document.getElementById('forecast');
     container.innerHTML = '';
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(data.daily.time[i] + 'T12:00:00');
-      const label = i === 0 ? 'Today' : d.toLocaleDateString([], { weekday: 'short' });
-      const icon = getIcon(data.daily.weather_code[i]);
-      const hi = Math.round(data.daily.temperature_2m_max[i]);
-      const lo = Math.round(data.daily.temperature_2m_min[i]);
+    const days = periods.filter(p => p.isDaytime).slice(0, 5);
+    const nights = periods.filter(p => !p.isDaytime);
+
+    days.forEach((day, idx) => {
+      const label = idx === 0 ? 'Today' : day.name.slice(0, 3);
+      const icon = getIconFromDesc(day.shortForecast);
+      const hi = day.temperature;
+      const lo = nights[idx] ? nights[idx].temperature : '--';
 
       container.innerHTML += `
         <div class="day-col">
@@ -122,7 +125,7 @@
           <span class="day-icon">${icon}</span>
           <span class="day-temps"><span>${hi}°</span><span class="day-low">${lo}°</span></span>
         </div>`;
-    }
+    });
   }
 
   function loadWeatherScript() {
@@ -133,7 +136,7 @@
     s.src = './weather.js?t=' + Date.now();
     s.onload = renderWeather;
     s.onerror = function() {
-      document.getElementById('weather-desc').textContent = 'weather.js not found';
+      document.getElementById('weather-desc').textContent = 'weather.js missing';
     };
     document.body.appendChild(s);
   }
