@@ -97,39 +97,51 @@
     return '⛈️';
   }
 
-  async function updateWeather() {
-    try {
-      const res = await fetch('https://github.io' + Date.now());
-      const data = await res.json();
-
-      document.getElementById('weather-temp').textContent = Math.round(data.current.temperature_2m) + '°F';
-      document.getElementById('weather-desc').textContent = 'Richardson, TX';
-
-      const container = document.getElementById('forecast');
-      container.innerHTML = '';
-      for (let i = 0; i < 5; i++) {
-        const d = new Date(data.daily.time[i] + 'T12:00:00');
-        const label = i === 0 ? 'Today' : d.toLocaleDateString([], { weekday: 'short' });
-        const icon = getIcon(data.daily.weather_code[i]);
-        const hi = Math.round(data.daily.temperature_2m_max[i]);
-        const lo = Math.round(data.daily.temperature_2m_min[i]);
-
-        container.innerHTML += `
-          <div class="day-col">
-            <span class="day-name">${label}</span>
-            <span class="day-icon">${icon}</span>
-            <span class="day-temps"><span>${hi}°</span><span class="day-low">${lo}°</span></span>
-          </div>`;
-      }
-    } catch (e) {
-      document.getElementById('weather-desc').textContent = 'Err: ' + e.message;
+  function renderWeather() {
+    const data = window.WEATHER_DATA;
+    if (!data || !data.current) {
+      document.getElementById('weather-desc').textContent = 'Waiting for weather.js...';
+      return;
     }
+
+    document.getElementById('weather-temp').textContent = Math.round(data.current.temperature_2m) + '°F';
+    document.getElementById('weather-desc').textContent = 'Richardson, TX';
+
+    const container = document.getElementById('forecast');
+    container.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(data.daily.time[i] + 'T12:00:00');
+      const label = i === 0 ? 'Today' : d.toLocaleDateString([], { weekday: 'short' });
+      const icon = getIcon(data.daily.weather_code[i]);
+      const hi = Math.round(data.daily.temperature_2m_max[i]);
+      const lo = Math.round(data.daily.temperature_2m_min[i]);
+
+      container.innerHTML += `
+        <div class="day-col">
+          <span class="day-name">${label}</span>
+          <span class="day-icon">${icon}</span>
+          <span class="day-temps"><span>${hi}°</span><span class="day-low">${lo}°</span></span>
+        </div>`;
+    }
+  }
+
+  function loadWeatherScript() {
+    const old = document.getElementById('w-script');
+    if (old) old.remove();
+    const s = document.createElement('script');
+    s.id = 'w-script';
+    s.src = './weather.js?t=' + Date.now();
+    s.onload = renderWeather;
+    s.onerror = function() {
+      document.getElementById('weather-desc').textContent = 'weather.js not found';
+    };
+    document.body.appendChild(s);
   }
 
   updateClock();
   setInterval(updateClock, 1000);
-  updateWeather();
-  setInterval(updateWeather, 900000);
+  loadWeatherScript();
+  setInterval(loadWeatherScript, 900000);
 </script>
 </body>
 </html>
