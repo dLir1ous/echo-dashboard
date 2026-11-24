@@ -14,12 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch Weather Data
         run: |
-          curl -f -sS -L -H "User-Agent: EchoShowDashboard/1.0 (https://github.com)" -H "Accept: application/json" "https://met.no" -o met.json || true
-          curl -f -sS -L -H "User-Agent: (EchoShowDashboard, https://github.com)" -H "Accept: application/geo+json" "https://weather.gov" -o nws.json || true
-          ls -lh met.json nws.json || true
-
           python3 - << 'EOF'
-          import json
+          import json, urllib.request
           from datetime import datetime, timezone, timedelta
 
           def c_to_f(c):
@@ -36,10 +32,17 @@ jobs:
 
           out = None
 
-          # Try MET Norway JSON first
+          # Source 1: MET Norway (assembled from short parts)
           try:
-              with open("met.json", "r", encoding="utf-8") as f:
-                  data = json.load(f)
+              met_host = "https://met.no"
+              met_path = "/weatherapi/locationforecast/2.0/compact"
+              met_query = "?lat=32.9483&lon=-96.7299"
+              req = urllib.request.Request(
+                  met_host + met_path + met_query,
+                  headers={"User-Agent": "EchoShowDashboard/1.0 ://github.com"}
+              )
+              raw = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
+              data = json.loads(raw)
               ts = data.get("properties").get("timeseries")
               first_ts = next(iter(ts))
               cur_c = first_ts.get("data").get("instant").get("details").get("air_temperature")
@@ -73,13 +76,19 @@ jobs:
               out = {"temp": c_to_f(cur_c), "days": days}
               print("Success from MET Norway:", out)
           except Exception as e:
-              print("MET Norway parse failed:", e)
+              print("MET Norway failed:", e)
 
-          # Fallback to US National Weather Service JSON
+          # Source 2: US National Weather Service (assembled from short parts)
           if not out:
               try:
-                  with open("nws.json", "r", encoding="utf-8") as f:
-                      data = json.load(f)
+                  nws_host = "https://weather.gov"
+                  nws_path = "/gridpoints/FWD/91,109/forecast"
+                  req = urllib.request.Request(
+                      nws_host + nws_path,
+                      headers={"User-Agent": "EchoShowDashboard/1.0", "Accept": "application/geo+json"}
+                  )
+                  raw = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
+                  data = json.loads(raw)
                   periods = data.get("properties").get("periods")
                   first_p = next(iter(periods))
                   cur_f = int(first_p.get("temperature"))
