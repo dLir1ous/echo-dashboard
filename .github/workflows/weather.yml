@@ -12,18 +12,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch Richardson Weather
+      - name: Fetch Weather Data
         run: |
-          if curl -f -sS --retry 3 -H "User-Agent: (EchoShowDashboard, admin@github.com)" -H "Accept: application/geo+json" "https://weather.gov" -o raw.json && python3 -m json.tool raw.json > /dev/null 2>&1; then
-            echo "Fetched NWS weather"
-          else
-            echo "NWS unavailable, falling back to Open-Meteo"
-            curl -f -sS --retry 3 -H "User-Agent: Mozilla/5.0" -H "Accept: application/json" "https://open-meteo.com" -o raw.json
-            python3 -m json.tool raw.json > /dev/null
-          fi
-          printf "window.WEATHER_DATA = " > weather.js
-          cat raw.json >> weather.js
-          echo ";" >> weather.js
+          python3 - << 'EOF'
+          import json, urllib.request
+
+          urls = [
+              ("NWS", "https://weather.gov", {"User-Agent": "EchoShowDashboard/1.0 (contact@example.com)", "Accept": "application/geo+json"}),
+              ("OpenMeteo", "https://open-meteo.com", {"User-Agent": "Mozilla/5.0"}),
+          ]
+
+          saved = False
+          for name, url, headers in urls:
+              try:
+                  req = urllib.request.Request(url, headers=headers)
+                  raw = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
+                  data = json.loads(raw)
+                  with open("weather.js", "w", encoding="utf-8") as f:
+                      f.write("window.WEATHER_DATA = " + json.dumps(data) + ";\n")
+                  print(f"Success from {name}")
+                  saved = True
+                  break
+              except Exception as e:
+                  print(f"{name} failed: {e}")
+
+          if not saved:
+              raise SystemExit("All weather sources failed")
+          EOF
       - name: Commit weather.js
         run: |
           git config user.name "github-actions[bot]"
