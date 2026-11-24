@@ -12,11 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch Open-Meteo Forecast
+      - name: Fetch NWS Forecast
         run: |
-          DATA=$(curl -f -s "https://open-meteo.com")
-          test -n "$DATA"
-          echo "window.WEATHER_DATA = $DATA;" > weather.js
+          curl -f -sS -H "User-Agent: (EchoShowDashboard, contact@example.com)" -H "Accept: application/geo+json" "https://weather.gov" -o raw.json
+          python3 -m json.tool raw.json > /dev/null
+          printf "window.WEATHER_DATA = " > weather.js
+          cat raw.json >> weather.js
+          echo ";" >> weather.js
       - name: Commit weather.js
         run: |
           git config user.name "github-actions[bot]"
